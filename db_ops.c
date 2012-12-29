@@ -224,6 +224,7 @@ static int db__tostring(lua_State *L)
 
 int init_db_ops(lua_State *L)
 {
+	dbgprint("init_db_ops\n");
     luaL_getmetatable(L, LUABDB_DB);
     lua_pushcfunction(L, db__gc);
     lua_setfield(L, -2, "__gc");
