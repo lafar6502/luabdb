@@ -1,7 +1,9 @@
 include config.mk
 
 bdb.so: $(OBJECTS)
-	gcc -o bdb.so -shared $^ -llua -lm -ldl -ldb
+	gcc $(LINKFLAGS) -o bdb.so -shared $^ -lluajit -lm -ldl -ldb
+	cp bdb.so ./test/
+
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c -fPIC $<

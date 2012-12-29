@@ -50,8 +50,11 @@ int init_sequence_config(lua_State *L);
 int init_txn_ops(lua_State *L);
 int init_txn_config(lua_State *L);
 
+#define dbgprint printf
+
 #define handle_error(status)\
     if(status) {\
+        dbgprint("db_error: %d\n", status); \
         lua_pushnil(L);\
         lua_pushstring(L, db_strerror(status));\
         lua_pushinteger(L, status);\
@@ -60,5 +63,7 @@ int init_txn_config(lua_State *L);
 
 DB **luabdb_createdbp(lua_State *L);
 DB_ENV **luabdb_createenvp(lua_State *L);
+
+
 
 #endif

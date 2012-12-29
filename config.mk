@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -O2
+CFLAGS = -O2 -I ../../luext/lua
+LINKFLAGS=-L ../../luext/lua
 
 OBJECTS = cursor_ops.o \
     db_ops.o \
