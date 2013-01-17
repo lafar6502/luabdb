@@ -37,7 +37,7 @@
     lua_pushnil(L);\
     lua_setfield(L, narg, #name);
 
-static u_int32_t luabdb_getflags(lua_State *L, int narg)
+u_int32_t luabdb_getflags(lua_State *L, int narg)
 {
     u_int32_t flags = 0;
     int type;
@@ -131,7 +131,7 @@ static int luabdb_open(lua_State *L)
     dbp = luabdb_createdbp(L);
 
     status = db_create(dbp, env, 0);
-	dbgprint("db_create %d. Flags: 0x%x\n", status, flags);
+	dbgprint("db_create %d. Flags: 0x%x, env: 0x%x\n", status, flags, env);
     handle_error(status);
     status = (*dbp)->open(*dbp, txn, file, database, type, flags, mode);
     dbgprint("db open %s: %d\n", file, status);
