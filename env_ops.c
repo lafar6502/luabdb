@@ -62,6 +62,27 @@ static int env_op_close(lua_State *L)
     return 0;
 }
 
+//initialize a new transaction object
+//parameters: transaction flags
+static int env_op_txn_begin(lua_State *L)
+{
+    struct DB_ENV_wrapper *wrapper;
+    u_int32_t flags = 0;
+    DB_TXN* txn = NULL;
+    
+    luabdb_toenv(L, 1); /* for error checking */
+    wrapper = (struct DB_ENV_wrapper *) luaL_checkudata(L, 1, LUABDB_ENV);
+    
+    int status = wrapper->env->txn_begin(wrapper->env, NULL, &txn, flags);
+    dbgprint("created a transaction.. 0x%x: 0x%x\n", status, txn);
+    handle_error(status);
+    
+    push_txn(L, txn);
+    dbgprint("pushed txn 0x%x\n", txn);
+    return 1;
+}
+
+
 #define _(name) { #name, env_op_##name }
 #define u_(name) { #name, luabdb_unimplemented }
 
@@ -233,7 +254,7 @@ static luaL_Reg env_funcs[] = {
     u_(set_verbose),
     u_(stat_print),
     u_(txn_applied),
-    u_(txn_begin),
+    _(txn_begin),
     u_(txn_checkpoint),
     u_(txn_recover),
     u_(txn_stat),

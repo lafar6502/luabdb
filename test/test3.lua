@@ -38,3 +38,10 @@ local fn, dn = db:get_dbname()
 
 print('file name:'..(fn or "--none"))
 print('db name:'..(dn or "--none"))
+
+
+db:get(key, value, {
+    flags = 3234,
+    txn = nil
+})
+
