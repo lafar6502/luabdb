@@ -32,7 +32,7 @@ static int txn_op_close(lua_State *L)
 }
 
 ///retrieve the transaction pointer
-DB_TXN* check_txn(lua_State *L, int index)
+DB_TXN** check_txn(lua_State *L, int index)
 {
     DB_TXN** ptx;
     luaL_checktype(L, index, LUA_TUSERDATA);
@@ -40,13 +40,11 @@ DB_TXN* check_txn(lua_State *L, int index)
     if (ptx == NULL) {
             luaL_typerror(L, index, LUABDB_TXN);
     }
-    if (*ptx == NULL) {
-            luaL_error(L, "null transaction");
-    }
-    dbgprint("check_txn: 0x%x\n", *ptx);
-    return *ptx;
+    //dbgprint("check_txn: 0x%x\n", *ptx);
+    return ptx;
 }
 
+///wrap a transaction in userdata and push it to the stack
 DB_TXN* push_txn(lua_State *L, DB_TXN* tx)
 {
     DB_TXN** ptx = (DB_TXN**) lua_newuserdata(L, sizeof(DB_TXN*));
@@ -55,11 +53,96 @@ DB_TXN* push_txn(lua_State *L, DB_TXN* tx)
     lua_setmetatable(L, -2);
     return *ptx;
 }
+
+static int txn_op_getId(lua_State *L)
+{
+    DB_TXN** ptx = check_txn(L, 1);
+    DB_TXN* tx = *ptx;
+    lua_Number id = tx->id(tx);
+    lua_pushnumber(L, id);
+    return 1;
+}
+
+static int txn_op_abort(lua_State *L)
+{
+    DB_TXN** ptx = check_txn(L, 1);
+    DB_TXN* tx = *ptx;
+    int status;
+    if (tx != NULL)
+    {
+        dbgprint("aborting tran 0x%x\n", tx);
+        status = tx->abort(tx);
+        handle_error(status);
+        *ptx = NULL;
+    }
+    return 0;
+}
+
+static int txn_op_commit(lua_State *L)
+{
+    DB_TXN** ptx = check_txn(L, 1);
+    DB_TXN* tx = *ptx;
+    u_int32_t flags = 0;
+    int status;
+    if (lua_gettop(L) > 1)
+    {
+        flags = luabdb_getflags(L, 2);
+    }
+    if (tx != NULL)
+    {
+        dbgprint("commit tran 0x%x\n", tx);
+        status = tx->commit(tx, flags);
+        if (status != 0) {
+            luaL_error(L, "commit failed");
+        }
+        *ptx = NULL;
+    }
+    return 0;
+}
+
+static int txn_op_setName(lua_State *L)
+{
+    DB_TXN** ptx = check_txn(L, 1);
+    DB_TXN* tx = *ptx;
+    u_int32_t flags = 0;
+    int status;
+    const char* name = lua_tostring(L, 2);
+    dbgprint("name: %s\n", name);
+    if (tx != NULL)
+    {
+        status = tx->set_name(tx, name);
+        handle_error(status);
+    }
+    return 0;
+}
+
+static int txn_op_getName(lua_State *L)
+{
+    DB_TXN** ptx = check_txn(L, 1);
+    DB_TXN* tx = *ptx;
+    u_int32_t flags = 0;
+    int status;
+    const char* name;
+    if (tx != NULL)
+    {
+        status = tx->get_name(tx, &name);
+        handle_error(status);
+        lua_pushstring(L, name);
+        return 1;
+    }
+    return 0;
+}
+
 #define _(name) { #name, txn_op_##name }
 #define u_(name) { #name, luabdb_unimplemented }
 
 static luaL_Reg txn_funcs[] = {
     _(close),
+    _(getId),
+    _(abort),
+    _(commit),
+    _(setName),
+    _(getName),
     u_(associate),
     { NULL, NULL }
 };
@@ -69,8 +152,8 @@ static luaL_Reg txn_funcs[] = {
 static int txn__gc(lua_State *L)
 {
     dbgprint("txn_gc\n");
-    DB_TXN* tx;
-    tx = check_txn(L, 1);
+    DB_TXN** ptx = check_txn(L, 1);
+    DB_TXN* tx = *ptx;
     if (tx != NULL)
     {
         dbgprint("aborting a transaction 0x%x\n", tx);

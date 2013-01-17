@@ -50,6 +50,12 @@ int init_sequence_config(lua_State *L);
 int init_txn_ops(lua_State *L);
 int init_txn_config(lua_State *L);
 
+
+///
+u_int32_t luabdb_getflags(lua_State *L, int narg);
+DB_TXN* push_txn(lua_State *L, DB_TXN* tx);
+DB_TXN** check_txn(lua_State *L, int index);
+
 #define dbgprint printf
 
 #define handle_error(status)\

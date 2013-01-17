@@ -13,4 +13,12 @@ if env == nil then
 end
 
 local tx = env:txn_begin({})
-print("tx:"..tx)
+
+print("tx:"..tx:getId())
+tx:setName('ala ma kota');
+
+print("tx name: "..tx:getName())
+tx:commit(bdb.flags.DB_TXN_NOSYNC)
+
+
+tx = nil
