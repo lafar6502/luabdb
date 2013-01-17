@@ -131,12 +131,13 @@ static int luabdb_open(lua_State *L)
     dbp = luabdb_createdbp(L);
 
     status = db_create(dbp, env, 0);
-	dbgprint("db_create %d. Flags: 0x%x, env: 0x%x\n", status, flags, env);
-    handle_error(status);
+	dbgprint("db_create %d. Flags: 0x%x, env: 0x%x, txn: 0x%x\n", status, flags, env, txn);
+    handle_dbexception(L, status);
+    
     status = (*dbp)->open(*dbp, txn, file, database, type, flags, mode);
     dbgprint("db open %s: %d\n", file, status);
-	handle_error(status);
-
+    handle_dbexception(L, status);
+    
     return 1;
 }
 

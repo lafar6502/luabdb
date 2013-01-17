@@ -74,10 +74,11 @@ static int db_op_put(lua_State *L)
     value.data = (void *) luaL_checklstring(L, 3, &value_len);
     key.size = key_len;
     value.size = value_len;
-    txn = luabdb_totxn(L, 4);
-    flags = luabdb_getflags(L, 5);
+    if (lua_gettop(L) >= 4) txn = luabdb_totxn(L, 4);
+    if (lua_gettop(L) >= 5) flags = luabdb_getflags(L, 5);
+    dbgprint("txn: 0x%x, flags: 0x%x\n", txn, flags);
     status = db->put(db, txn, &key, &value, flags);
-    handle_error(status);
+    handle_dbexception(L, status);
 
     return 0;
 }
@@ -101,10 +102,12 @@ static int db_op_get(lua_State *L)
     key.data = (void *) luaL_checklstring(L, 2, &key_len);
     key.size = key_len;
     value.flags = DB_DBT_MALLOC;
-    flags = luabdb_getflags(L, 4);
-
+    
+    if (lua_gettop(L) >= 3) txn = luabdb_totxn(L, 3);
+    if (lua_gettop(L) >= 4) flags = luabdb_getflags(L, 4);
+    
     status = db->get(db, txn, &key, &value, flags);
-    handle_error(status);
+    handle_dbexception(L, status);
 
     lua_pushlstring(L, value.data, value.size);
     free(value.data);

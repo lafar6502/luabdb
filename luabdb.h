@@ -36,11 +36,11 @@
 
 DB *luabdb_todb(lua_State *L, int narg);
 DB_ENV *luabdb_toenv(lua_State *L, int narg);
+DB_TXN *luabdb_totxn(lua_State *L, int narg);
 
 #define luabdb_tocursor(L, narg) ((DBC *) luaL_checkudata(L, narg, LUABDB_CURSOR))
 #define luabdb_tolog(L, narg) ((DB_LOGC *) luaL_checkudata(L, narg, LUABDB_LOG))
 #define luabdb_tomempool(L, narg) ((DB_MPOOLFILE *) luaL_checkudata(L, narg, LUABDB_MEMPOOL))
 #define luabdb_toseq(L, narg) ((DB_SEQUENCE *) luaL_checkudata(L, narg, LUABDB_SEQ))
-#define luabdb_totxn(L, narg) ((DB_TXN *) luaL_checkudata(L, narg, LUABDB_TXN))
 
 #endif

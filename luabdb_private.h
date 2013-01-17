@@ -67,6 +67,11 @@ DB_TXN** check_txn(lua_State *L, int index);
         return 3;\
     }
 
+#define handle_dbexception(L,status)\
+    if (status) {\
+        luaL_error(L, "BDB error %d: %s", status, db_strerror(status));\
+    }
+
 DB **luabdb_createdbp(lua_State *L);
 DB_ENV **luabdb_createenvp(lua_State *L);
 

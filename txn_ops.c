@@ -44,6 +44,16 @@ DB_TXN** check_txn(lua_State *L, int index)
     return ptx;
 }
 
+DB_TXN *luabdb_totxn(lua_State *L, int narg)
+{
+    DB_TXN** ptx = check_txn(L, narg);
+    if (ptx != NULL)
+    {
+        return *ptx;
+    }
+    return NULL;
+}
+
 ///wrap a transaction in userdata and push it to the stack
 DB_TXN* push_txn(lua_State *L, DB_TXN* tx)
 {
