@@ -13,4 +13,7 @@ OBJECTS = cursor_ops.o \
     replication_ops.o \
     sequence_ops.o \
     txn_ops.o \
+    tester_ops.o \
+    utils.o \
+    db_udata_ops.o \
     bdb.o
