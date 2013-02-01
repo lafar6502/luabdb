@@ -5,7 +5,7 @@ local bdb = require('bdb')
 
 local env = bdb.openenv({
     home = "txndb",
-    flags = {bdb.flags.DB_INIT_TXN, bdb.flags.DB_INIT_LOG, bdb.flags.DB_INIT_LOCK, bdb.flags.DB_CREATE, bdb.flags.DB_INIT_MPOOL}
+    flags = {bdb.flags.DB_INIT_TXN, bdb.flags.DB_INIT_LOG, bdb.flags.DB_INIT_LOCK, bdb.flags.DB_CREATE, bdb.flags.DB_INIT_MPOOL, bdb.flags.DB_RECOVER, bdb.flags.DB_THREAD}
 })
 
 if env == nil then
@@ -20,12 +20,14 @@ tx:setName('ala ma kota');
 local db = bdb.open({env = env, txn = tx,  file="trant1.db", flags = {bdb.flags.DB_CREATE}, type = bdb.flags.DB_BTREE})
 print("tx name: "..tx:getName())
 tx:commit()
+tx = nil
 
 print("Second TEST")
 local tx2 = env:txn_begin({})
 print("put data");
 db:put("ala", "ma kota", tx2)
-print("in tran get: "..db:get("ala"), tx2)
+print("put ok")
+print("in tran get: "..db:get("ala", tx2))
 tx2:abort()
 print("out tran get: "..db:get("ala"))
 
