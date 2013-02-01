@@ -67,12 +67,25 @@ static int env_op_txn_begin(lua_State *L)
     return 1;
 }
 
+static int env_op_testMapping(lua_State *L)
+{
+    DB_ENV** pp = luabdb_toenv(L, 1);
+   if (*pp == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    get_lua_object_from_registry(L, *pp);
+    return 1;
+}
+
+
 
 #define _(name) { #name, env_op_##name }
 #define u_(name) { #name, luabdb_unimplemented }
 
 static luaL_Reg env_funcs[] = {
     _(close),
+    _(testMapping),
     u_(add_data_dir),
     u_(cdsgroup_begin),
     u_(cdsgroup_begin),

@@ -103,7 +103,7 @@ static int luabdb_open(lua_State *L)
     DB **dbp;
     int status;
 
-    DB_ENV *env = NULL;
+    DB_ENV **env = NULL;
     DB_TXN *txn = NULL;
     const char *file = NULL;
     const char *database = NULL;
@@ -134,8 +134,8 @@ static int luabdb_open(lua_State *L)
     lua_setmetatable(L, -2);
     dbp = push_db(L, NULL);
     lua_setfield(L, -2, "_db");
-    status = db_create(dbp, env, 0);
-	dbgprint("db_created %d. Flags: 0x%x, env: 0x%x, txn: 0x%x, db:0x%x\n", status, flags, env, txn, *dbp);
+    status = db_create(dbp, env == NULL ? NULL : *env, 0);
+	dbgprint("db_created %d. Flags: 0x%x, env: 0x%x, txn: 0x%x, db:0x%x, file:%s\n", status, flags, env == NULL ? NULL : *env, txn, *dbp, file);
     handle_dbexception(L, status);
     
     status = (*dbp)->open(*dbp, txn, file, database, type, flags, mode);
@@ -154,7 +154,6 @@ static int luabdb_open(lua_State *L)
 ///returned object is a table with _env member (userdata wrapping the DB_ENV pointer)
 static int luabdb_openenv(lua_State *L)
 {
-    DB_ENV **envp;
     int status;
 
     const char *home = NULL;
@@ -173,15 +172,20 @@ static int luabdb_openenv(lua_State *L)
             return luaL_error(L, "Invalid option to bdb.open: %s", lua_tostring(L, -2));
         }
     }
-    status = db_env_create(envp, 0);
-    handle_error(status);
-
-    status = (*envp)->open(*envp, home, flags, mode);
-    handle_error(status);
+    
+    
     DB_ENV** pdt = (DB_ENV**) lua_newuserdata(L, sizeof(DB_ENV*));
-    *pdt = *envp;
+    *pdt = NULL;
     luaL_getmetatable(L, LUABDB_ENV);
     lua_setmetatable(L, -2);
+    status = db_env_create(pdt, 0);
+    handle_error(status);
+    //env pushed...
+    status = (*pdt)->open(*pdt, home, flags, mode);
+    handle_error(status);
+    dbgprint("openenv env:0x%x\n", *pdt);
+    stackdump(L);
+    store_bidi_in_registry(L, *pdt, 2);
     return 1;
 }
 
