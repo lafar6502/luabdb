@@ -26,39 +26,27 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-struct DB_ENV_wrapper {
-    DB_ENV *env;
-};
 
-DB_ENV *luabdb_toenv(lua_State *L, int narg)
+DB_ENV **luabdb_toenv(lua_State *L, int narg)
 {
-    struct DB_ENV_wrapper *wrapper = (struct DB_ENV_wrapper *) luaL_checkudata(L, narg, LUABDB_ENV);
-    if(! wrapper->env) {
-        luaL_error(L, "Attempt to use a closed DB_ENV handle (%p)", lua_topointer(L, narg));
+    luaL_checktype(L, narg, LUA_TUSERDATA);
+    DB_ENV** pp = (DB_ENV**) luaL_checkudata(L, narg, LUABDB_ENV);
+    if (pp == NULL) {
+        luaL_typerror(L, narg, LUABDB_ENV);
     }
-    return wrapper->env;
+    return pp;
 }
 
-DB_ENV **luabdb_createenvp(lua_State *L)
-{
-    struct DB_ENV_wrapper *wrapper;
 
-    wrapper = lua_newuserdata(L, sizeof(struct DB_ENV_wrapper));
-    luaL_getmetatable(L, LUABDB_ENV);
-    lua_setmetatable(L, -2);
-
-    return &(wrapper->env);
-}
 
 static int env_op_close(lua_State *L)
 {
-    struct DB_ENV_wrapper *wrapper;
-    u_int32_t flags = 0;
-
-    luabdb_toenv(L, 1); /* for error checking */
-    wrapper = (struct DB_ENV_wrapper *) luaL_checkudata(L, 1, LUABDB_ENV);
-    wrapper->env->close(wrapper->env, flags);
-    wrapper->env = NULL;
+    DB_ENV** pp = luabdb_toenv(L, 1);
+    if (*pp != NULL) 
+    {
+        (*pp)->close(*pp, 0);
+        *pp = NULL;
+    }
     return 0;
 }
 
@@ -66,14 +54,11 @@ static int env_op_close(lua_State *L)
 //parameters: transaction flags
 static int env_op_txn_begin(lua_State *L)
 {
-    struct DB_ENV_wrapper *wrapper;
     u_int32_t flags = 0;
     DB_TXN* txn = NULL;
+    DB_ENV** pp = luabdb_toenv(L, 1);
     
-    luabdb_toenv(L, 1); /* for error checking */
-    wrapper = (struct DB_ENV_wrapper *) luaL_checkudata(L, 1, LUABDB_ENV);
-    
-    int status = wrapper->env->txn_begin(wrapper->env, NULL, &txn, flags);
+    int status = (*pp)->txn_begin(*pp, NULL, &txn, flags);
     dbgprint("created a transaction.. 0x%x: 0x%x\n", status, txn);
     handle_error(status);
     

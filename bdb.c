@@ -127,20 +127,31 @@ static int luabdb_open(lua_State *L)
             return luaL_error(L, "Invalid option to bdb.open: %s", lua_tostring(L, -2));
         }
     }
-
-    dbp = luabdb_createdbp(L);
-
+    lua_newtable(L);
+    dbgprint("db_open %d\n", lua_gettop(L));
+    //stackdump(L);
+    luaL_getmetatable(L, LUABDB_DBT);
+    lua_setmetatable(L, -2);
+    dbp = push_db(L, NULL);
+    lua_setfield(L, -2, "_db");
     status = db_create(dbp, env, 0);
-	dbgprint("db_create %d. Flags: 0x%x, env: 0x%x, txn: 0x%x\n", status, flags, env, txn);
+	dbgprint("db_created %d. Flags: 0x%x, env: 0x%x, txn: 0x%x, db:0x%x\n", status, flags, env, txn, *dbp);
     handle_dbexception(L, status);
     
     status = (*dbp)->open(*dbp, txn, file, database, type, flags, mode);
     dbgprint("db open %s: %d\n", file, status);
     handle_dbexception(L, status);
-    
+    if (*dbp != NULL)
+    {
+        store_bidi_in_registry(L, *dbp, 2); //map DB* to the returned table
+    }
+    //dbgprint("db_open %d\n", lua_gettop(L));
+    //stackdump(L);
     return 1;
 }
 
+///opens an environment
+///returned object is a table with _env member (userdata wrapping the DB_ENV pointer)
 static int luabdb_openenv(lua_State *L)
 {
     DB_ENV **envp;
@@ -162,17 +173,19 @@ static int luabdb_openenv(lua_State *L)
             return luaL_error(L, "Invalid option to bdb.open: %s", lua_tostring(L, -2));
         }
     }
-
-    envp = luabdb_createenvp(L);
-
     status = db_env_create(envp, 0);
     handle_error(status);
 
     status = (*envp)->open(*envp, home, flags, mode);
     handle_error(status);
-
+    DB_ENV** pdt = (DB_ENV**) lua_newuserdata(L, sizeof(DB_ENV*));
+    *pdt = *envp;
+    luaL_getmetatable(L, LUABDB_ENV);
+    lua_setmetatable(L, -2);
     return 1;
 }
+
+
 
 static luaL_Reg luabdb_functions[] = {
     { "open", luabdb_open },
@@ -184,6 +197,7 @@ static int init_metatables(lua_State *L)
 {
     const char *types[] = {
         LUABDB_DB,
+        LUABDB_DBT,
         LUABDB_ENV,
         LUABDB_CURSOR,
         LUABDB_LOG,
@@ -196,10 +210,11 @@ static int init_metatables(lua_State *L)
     for(type = types; *type; type++) {
         luaL_newmetatable(L, *type);
         lua_newtable(L);
-        lua_setfield(L, -2, "__index");
+        lua_setfield(L, -2, "__index"); //metatable is it's own index
         lua_pushboolean(L, 0);
-        lua_setfield(L, -2, "__metatable");
+        lua_setfield(L, -2, "__metatable"); //protect metatable with __metatable = false
         lua_pop(L, 1);
+        //now we've got an empty metatable with _index - we just need to fill it with functions...
     }
     return 0;
 }
@@ -219,6 +234,7 @@ int luaopen_bdb(lua_State *L)
         init_metatables,
         init_flags,
         init_db_ops,
+        init_dbt_ops,
         init_cursor_ops,
         init_env_ops,
         init_lock_ops,
@@ -228,19 +244,26 @@ int luaopen_bdb(lua_State *L)
         init_replication_ops,
         init_sequence_ops,
         init_txn_ops,
+        //init_tester_ops,
         NULL
     };
     lua_CFunction *init_func;
-
+    dbgprint("init1 %d\n", lua_gettop(L));
+    create_bidi_registry(L);
+    dbgprint("init2 %d\n", lua_gettop(L));
     const char *libraryName = luaL_checkstring(L, 1);
-    lua_newtable(L);
+    
+    //lua_newtable(L);
+    dbgprint("init3 %d\n", lua_gettop(L));
     luaL_register(L, libraryName, luabdb_functions);
-
+    dbgprint("init4 %d\n", lua_gettop(L));
     for(init_func = init_funcs; *init_func; init_func++) {
         lua_pushcfunction(L, *init_func);
         lua_pushvalue(L, -2);
+        dbgprint("init5.1 %d\n", lua_gettop(L));
         lua_call(L, 1, 0);
+        dbgprint("init5.2 %d\n", lua_gettop(L));
     }
-
+    
     return 1;
 }
