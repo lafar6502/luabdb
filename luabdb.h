@@ -27,15 +27,19 @@
 #include <lua.h>
 
 #define LUABDB_DB "DB*"
+#define LUABDB_DBT "DBT*" //second metatable for db-wrapper table object
 #define LUABDB_ENV "DB_ENV*"
 #define LUABDB_CURSOR "DBC*"
 #define LUABDB_LOG "DB_LOGC*"
 #define LUABDB_MEMPOOL "DB_MPOOLFILE*"
 #define LUABDB_SEQ "DB_SEQUENCE*"
 #define LUABDB_TXN "DB_TXN*"
+#define LUABDB_TESTER "DB_TESTER"
 
-DB *luabdb_todb(lua_State *L, int narg);
-DB_ENV *luabdb_toenv(lua_State *L, int narg);
+DB **luabdb_todb(lua_State *L, int narg);
+DB **push_db(lua_State *L, DB* db);
+
+DB_ENV **luabdb_toenv(lua_State *L, int narg);
 DB_TXN *luabdb_totxn(lua_State *L, int narg);
 
 #define luabdb_tocursor(L, narg) ((DBC *) luaL_checkudata(L, narg, LUABDB_CURSOR))

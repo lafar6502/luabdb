@@ -31,6 +31,7 @@ int luabdb_unimplemented(lua_State *L);
 
 int init_flags(lua_State *L);
 int init_db_ops(lua_State *L);
+int init_dbt_ops(lua_State *L);
 int init_db_config(lua_State *L);
 int init_cursor_ops(lua_State *L);
 int init_env_ops(lua_State *L);
@@ -49,7 +50,15 @@ int init_sequence_ops(lua_State *L);
 int init_sequence_config(lua_State *L);
 int init_txn_ops(lua_State *L);
 int init_txn_config(lua_State *L);
+int init_tester_ops(lua_State *L);
 
+///bi-directional c<-->lua mapping registry (weak table)
+void create_bidi_registry(lua_State *L);
+///stores a mapping (ptrKey->lua object at index) in a mapping registry
+int store_bidi_in_registry(lua_State *L, void* ptrKey, int index);
+///retrieve lua object from the mapping registry and push it on the stack
+void get_lua_object_from_registry(lua_State *L, void *ptrKey);
+void stackdump(lua_State* l);
 
 ///
 u_int32_t luabdb_getflags(lua_State *L, int narg);
