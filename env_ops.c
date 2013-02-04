@@ -78,7 +78,19 @@ static int env_op_testMapping(lua_State *L)
     return 1;
 }
 
-
+static int env_op_get_home(lua_State *L)
+{
+    DB_ENV** pp = luabdb_toenv(L, 1);
+    if (*pp == NULL) {
+        lua_pushnil(L);
+        return 1;
+    }
+    char* home;
+    int status = (*pp)->get_home(*pp, &home);
+    handle_error(status);
+    lua_pushstring(L, home);
+    return 1;
+}
 
 #define _(name) { #name, env_op_##name }
 #define u_(name) { #name, luabdb_unimplemented }
@@ -103,7 +115,7 @@ static luaL_Reg env_funcs[] = {
     u_(get_errfile),
     u_(get_errpfx),
     u_(get_flags),
-    u_(get_home),
+    _(get_home),
     u_(get_intermediate_dir_mode),
     u_(get_lg_bsize),
     u_(get_lg_dir),

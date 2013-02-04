@@ -59,6 +59,9 @@ int store_bidi_in_registry(lua_State *L, void* ptrKey, int index);
 ///retrieve lua object from the mapping registry and push it on the stack
 void get_lua_object_from_registry(lua_State *L, void *ptrKey);
 void stackdump(lua_State* l);
+int init_luabdb_tls();
+int set_local_lua_state(lua_State *L);
+lua_State *get_local_lua_state();
 
 ///
 u_int32_t luabdb_getflags(lua_State *L, int narg);

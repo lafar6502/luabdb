@@ -1,8 +1,12 @@
 #include "luabdb_private.h"
 #include <lauxlib.h>
 #include <lualib.h>
+#include <pthread.h>
 
 static char* g_bidiMapKey = "bidimap";
+//thread local key for storing lua_State
+static pthread_key_t   g_luaStateKey = 0;
+
 
 ///bi-directional c<-->lua mapping registry (weak table)
 void create_bidi_registry(lua_State *L)
@@ -83,4 +87,21 @@ void stackdump(lua_State* l)
         printf("  ");  /* put a separator */
     }
     printf("\n");  /* end the listing */
+}
+
+//initialize thread local storage
+int init_luabdb_tls()
+{
+    int rc = pthread_key_create(&g_luaStateKey, NULL);
+    return rc;
+}
+
+int set_local_lua_state(lua_State *L)
+{
+    return pthread_setspecific(g_luaStateKey, L);
+}
+
+lua_State *get_local_lua_state()
+{
+    return (lua_State*) pthread_getspecific(g_luaStateKey);
 }

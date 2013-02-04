@@ -215,8 +215,8 @@ static int init_metatables(lua_State *L)
         luaL_newmetatable(L, *type);
         lua_newtable(L);
         lua_setfield(L, -2, "__index"); //metatable is it's own index
-        lua_pushboolean(L, 0);
-        lua_setfield(L, -2, "__metatable"); //protect metatable with __metatable = false
+        //lua_pushboolean(L, 0);
+        //lua_setfield(L, -2, "__metatable"); //protect metatable with __metatable = false
         lua_pop(L, 1);
         //now we've got an empty metatable with _index - we just need to fill it with functions...
     }
@@ -254,6 +254,9 @@ int luaopen_bdb(lua_State *L)
     lua_CFunction *init_func;
     dbgprint("init1 %d\n", lua_gettop(L));
     create_bidi_registry(L);
+    if (init_luabdb_tls() != 0) {
+        luaL_error(L, "failed to init thread local storage");
+    }
     dbgprint("init2 %d\n", lua_gettop(L));
     const char *libraryName = luaL_checkstring(L, 1);
     

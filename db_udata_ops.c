@@ -2,6 +2,8 @@
 #include <db.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#include <pthread.h>
+
 
 ///retrieves _db member from the 'db' table. Does not modify the stack.
 static DB* retrieve_db(lua_State *L, int index)
@@ -40,6 +42,7 @@ static int dbt_op_put(lua_State *L)
     value.size = value_len;
     if (lua_gettop(L) >= 4) txn = luabdb_totxn(L, 4);
     if (lua_gettop(L) >= 5) flags = luabdb_getflags(L, 5);
+    set_local_lua_state(L);
     //dbgprint("txn: 0x%x, flags: 0x%x, key size: %d, value size: %d\n", txn, flags, key_len, value_len);
     status = db->put(db, txn, &key, &value, flags);
     //dbgprint("put done: 0x%x\n", status);
@@ -52,7 +55,6 @@ static int dbt_op_put(lua_State *L)
 static int dbt_op_get(lua_State *L)
 {
     DB *db = retrieve_db(L, 1);
-
     DB_TXN *txn = NULL;
     DBT key;
     DBT value;
@@ -87,6 +89,44 @@ static int dbt_op_get(lua_State *L)
     else handle_dbexception(L, status);
 }
 
+///barkeleydb 
+static int db_associate_callback(DB *secondary, const DBT  *key, const DBT *value, DBT *secKey)
+{
+    dbgprint("db_associate_callback\n");
+    lua_State *L = get_local_lua_state();
+    if (L == NULL) {
+        dbgprint("no local lua state\n");
+        return 1001;
+    }
+    get_lua_object_from_registry(L, secondary);
+    lua_getfield(L, -1, "_indexFn");
+    lua_pushlstring(L, key->data, key->size);
+    lua_pushlstring(L, value->data, value->size);
+    lua_call(L, 2, 1);
+    return 1;
+}
+
+//DB:associate(DB secondary, function(DB, id, value, luaValue), transaction, flags)
+static int dbt_op_associate(lua_State *L)
+{
+    DB *db = retrieve_db(L, 1);
+    DB *secDb = retrieve_db(L, 2);
+    DB_TXN *txn = NULL;
+    if (secDb == NULL) {
+        luaL_error(L, "secondary db missing");
+    }
+    u_int32_t flags = 0;
+    set_local_lua_state(L);
+    int status = db->associate(db, txn, secDb, db_associate_callback, flags);
+    dbgprint("associated %d\n", status);
+    handle_dbexception(L, status);
+    lua_pushvalue(L, 3);
+    lua_setfield(L, 2, "_indexFn");
+    //now insert the callback function into secDb table
+    return 0;
+}
+
+
 ///get_dbname returns 2 values: db file name and database name
 static int dbt_op_get_dbname(lua_State *L)
 {
@@ -119,6 +159,7 @@ static int dbt_op_get_dbname(lua_State *L)
     return 2;
 }
 
+
 static int dbt_op_testMapping(lua_State *L)
 {
     DB *db = retrieve_db(L, 1);
@@ -140,7 +181,7 @@ static luaL_Reg dbt_funcs[] = {
     _(get),
     _(testMapping),
     u_(close),
-    u_(associate),
+    _(associate),
     u_(associate_foreign),
     u_(compact),
     u_(del),
