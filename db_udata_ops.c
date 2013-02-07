@@ -103,7 +103,9 @@ static int db_associate_callback(DB *secondary, const DBT  *key, const DBT *valu
     lua_pushlstring(L, key->data, key->size);
     lua_pushlstring(L, value->data, value->size);
     lua_call(L, 2, 1);
-    return 1;
+    secKey->data = lua_tolstring(L, -1, &secKey->size);
+    dbgprint("index key: %s\n", secKey->data);
+    return 0;
 }
 
 //DB:associate(DB secondary, function(DB, id, value, luaValue), transaction, flags)
@@ -115,13 +117,15 @@ static int dbt_op_associate(lua_State *L)
     if (secDb == NULL) {
         luaL_error(L, "secondary db missing");
     }
-    u_int32_t flags = 0;
+    u_int32_t flags = DB_CREATE;
     set_local_lua_state(L);
+    lua_pushvalue(L, 3);
+    lua_setfield(L, 2, "_indexFn");
+    lua_pushvalue(L, 1);
+    lua_setfield(L, 2, "_masterDb");
     int status = db->associate(db, txn, secDb, db_associate_callback, flags);
     dbgprint("associated %d\n", status);
     handle_dbexception(L, status);
-    lua_pushvalue(L, 3);
-    lua_setfield(L, 2, "_indexFn");
     //now insert the callback function into secDb table
     return 0;
 }
